@@ -1,6 +1,7 @@
 export default class Node {
 
   #dom
+  #type
   #nodeTypes = {
     'svg': (tag) => { return this.#dom.createElementNS('http://www.w3.org/2000/svg', tag) },
     'html': (tag) => { return this.#dom.createElement(tag) }
@@ -13,8 +14,10 @@ export default class Node {
 
     if (typeof(type) === 'string' && this.#nodeTypes[type]) {
 
+      this.#type = type;
+
       if (tag) {
-        this.node = nodeTypes[type](tag)
+        this.node = nodeTypes[this.#type](tag)
         configureElement(this.node, config)
       }
 
@@ -26,7 +29,7 @@ export default class Node {
   make(tag, config) {
 
     if (!this.archive) this.archive = new Map();
-    const svgEl = new SvgEl(tag, config, this.archive, this.#nodeTypes[type]);
+    const svgEl = new SvgEl(tag, config, this.archive, this.#nodeTypes[this.#type]);
     this.archive.set(svgEl._key, svgEl);
 
     svgEl.addNodes = this.addNodes.bind(svgEl)
