@@ -1,23 +1,23 @@
-import jsdom from 'jsdom';
-const { JSDOM } = jsdom;
-const { document } = (new JSDOM(`<!DOCTYPE html><p>Hello world</p>`)).window;
-
-// JSDOM is used for testing purposses
-
 export default class Node {
 
-  #objectType
+  #dom
+  #nodeTypes = {
+    'svg': (tag) => { return this.#dom.createElementNS('http://www.w3.org/2000/svg', tag) },
+    'html': (tag) => { return this.#dom.createElement(tag) }
+  }
 
-  constructor(type, tag, config) {
+  constructor(dom, type, tag, config) {
 
-    if (typeof(type) === 'string' && nodeTypes[type]) {
+    if (typeof(dom) !== 'object' || Array.isArray(dom)) return console.error(dom, `document is required`)
+    this.#dom = dom;
+
+    if (typeof(type) === 'string' && this.#nodeTypes[type]) {
 
       if (tag) {
         this.node = nodeTypes[type](tag)
         configureElement(this.node, config)
       }
 
-      this.#objectType = nodeTypes[type]
     } else {
       console.warn(type, 'not a valid DOM node type')
     }
@@ -26,7 +26,7 @@ export default class Node {
   make(tag, config) {
 
     if (!this.archive) this.archive = new Map();
-    const svgEl = new SvgEl(tag, config, this.archive, this.#objectType);
+    const svgEl = new SvgEl(tag, config, this.archive, this.#nodeTypes[type]);
     this.archive.set(svgEl._key, svgEl);
 
     svgEl.addNodes = this.addNodes.bind(svgEl)
@@ -101,11 +101,6 @@ export default class Node {
     return this.archive.get(evalKey.cleaned)
   }
 
-}
-
-const nodeTypes = {
-  'svg': (tag) => { return document.createElementNS('http://www.w3.org/2000/svg', tag) },
-  'html': (tag) => { return document.createElement(tag) }
 }
 
 // Helper functions

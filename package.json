@@ -17,9 +17,6 @@
     "url": "https://github.com/Heini766/DOM-render-library/issues"
   },
   "homepage": "https://github.com/Heini766/DOM-render-library#readme",
-  "type": "module",
-  "dependencies": {
-    "jsdom": "^27.2.0"
-  }
+  "type": "module"
 }
 
