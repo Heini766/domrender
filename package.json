@@ -1,5 +1,5 @@
 {
-  "name": "dom-render-library",
+  "name": "domrender",
   "version": "1.0.0",
   "description": "A DOM rendering library",
   "main": "index.js",
@@ -22,3 +22,4 @@
     "jsdom": "^27.2.0"
   }
 }
+
