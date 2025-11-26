@@ -43,7 +43,7 @@ export default class Node {
     nodes = Array.isArray(nodes) ? nodes : [nodes];
     
     nodes.forEach(item => {
-      if (!item || !item.parent) return this
+      if (!item) return this
       item.parent = this;
       this.node.appendChild(item.node);
     });
