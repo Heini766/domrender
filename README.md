@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-npm install Heini766/DOM-render-library
+npm install Heini766/domrender
 
 --usage
-import { DOMRenderer } from 'dom-render-library;
+import Node from 'domrender';
