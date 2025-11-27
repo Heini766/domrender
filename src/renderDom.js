@@ -7,7 +7,7 @@ export default class Node {
     'html': (tag) => { return this.#dom.createElement(tag) }
   }
 
-  constructor(dom, type, tag, config) {
+  constructor(dom, type) {
 
     if (typeof(dom) !== 'object' || Array.isArray(dom)) return console.error(dom, `document is required`)
     this.#dom = dom;
@@ -15,11 +15,6 @@ export default class Node {
     if (typeof(type) === 'string' && this.#nodeTypes[type]) {
 
       this.#type = type;
-
-      if (tag) {
-        this.node = nodeTypes[this.#type](tag)
-        configureElement(this.node, config)
-      }
 
     } else {
       console.warn(type, 'not a valid DOM node type')
@@ -29,27 +24,10 @@ export default class Node {
   make(tag, config) {
 
     if (!this.archive) this.archive = new Map();
-    const svgEl = new SvgEl(tag, config, this.archive, this.#nodeTypes[this.#type]);
-    this.archive.set(svgEl._key, svgEl);
+    const newElement = new Element(tag, config, this.archive, this.#nodeTypes[this.#type]);
+    this.archive.set(newElement._key, newElement);
 
-    svgEl.addNodes = this.addNodes.bind(svgEl)
-
-    return svgEl
-  }
-
-  addNodes(nodes) {
-
-    if (typeof(nodes) === 'function') nodes = nodes();
-    nodes = Array.isArray(nodes) ? nodes : [nodes];
-    
-    nodes.forEach(item => {
-      if (!item) return this
-      item.parent = this;
-      this.node.appendChild(item.node);
-    });
-
-    return this
-    
+    return newElement
   }
 
   get(target, config) {
@@ -108,7 +86,7 @@ export default class Node {
 
 // Helper functions
 
-class SvgEl {
+class Element {
 
   #styles = {};
   #archive;
@@ -140,6 +118,21 @@ class SvgEl {
 
     configureElement(this.node, config);
 
+  }
+
+  add(nodes) {
+
+    if (typeof(nodes) === 'function') nodes = nodes();
+    nodes = Array.isArray(nodes) ? nodes : [nodes];
+    
+    nodes.forEach(item => {
+      if (!item) return this
+      item.parent = this;
+      this.node.appendChild(item.node);
+    });
+
+    return this
+    
   }
 
   setState(config = {}) {
@@ -188,7 +181,14 @@ class SvgEl {
 
     return {
       object: this,
-      then: (callBack) => { if (callBack && typeof(callBack) === 'function') callBack(this) }
+      then: (callBack) => {
+        let value
+        if (callBack && typeof(callBack) === 'function') {
+          value = callBack(this)
+        }
+        if (value) return value
+        else return this
+      }
     }
     
   }
@@ -271,7 +271,7 @@ function configureElement(node, config) {
     }
   }
   
-} // used by SVG and createSvgEl to setup node attributes
+} // used by SVG and createElement to setup node attributes
 
 // Utils
 
