@@ -73,6 +73,34 @@ class Grid {
     }
     
   }
+
+  modify(config) {
+
+    if (!config) return
+
+    const data = {
+      distance: 1/Math.sqrt(this.#uvs.length)
+    }
+
+    let newArray = []
+    let X = true;
+    let Y = true;
+
+      if (typeof(config.x) !== 'function') X = undefined;
+      if (typeof(config.y) !== 'function') Y = undefined;
+
+    this.#uvs.forEach((uv, i) => {
+
+      let x, y
+
+      if (X) x = config.x(uv[0], data, i);
+      if (Y) y = config.y(uv[1], data, i);
+
+      newArray.push([x || uv[0], y || uv[1]])
+    })
+
+    this.#uvs = newArray
+  }
   
 }
 
