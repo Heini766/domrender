@@ -27,8 +27,6 @@ get(key) {
     return
   }
 
-  console.log(this.#archive.size)
-
   if (key) return this.#archive.get(key)
   else return this.#archive.get(`Map_${this.#archive.size - 1}`)
   
