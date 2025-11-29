@@ -217,11 +217,16 @@ class Element {
 
   move(newParent) {
     
-    if (newParent) this.parent = newParent;
+    if (newParent) {
+      this.parent = newParent;
+      this.place()
+    }
     else {
       console.warn(newParent, 'not a valid object type')
       return
     }
+
+    return this
     
   }
 
