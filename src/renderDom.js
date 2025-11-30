@@ -140,7 +140,7 @@ class Element {
     
     if (!config || typeof config !== 'object') {
       console.warn('Invalid config provided');
-      return;
+      return this;
     }
 
     const currentData = this.#styles ? this.#styles : {};
@@ -259,8 +259,62 @@ class Element {
 
     this.node.remove()
   }
+
+  draggable(config = {}) {
+
+    const data = {
+      object: this,
+      active: (set) => {
+        if (this.node && set) this.node.addEventListener('mousedown', onD)
+        else if (!this.node) console.warn(this.node, 'is not a DOM node')
+        else this.node.removeEventListener('mousedown', onD)
+        }
+    }
+
+    let int = {}
+    const  onD = (e) => {
+
+      window.addEventListener('mousemove', onM)
+      window.addEventListener('mouseup', onU)
+
+      const initPos = getRelativePosition(e, this.parent.node);
+      const shapePos = this.getState('translate');
+
+      if (!shapePos) return console.warn(`transform wasn't set`)
+
+      int.offset = [initPos[0] - shapePos[0], initPos[1] - shapePos[1]]
+      
+      if (!config.onDown || typeof(config.onDown) !== 'function' ) return
+      config.onDown(e, data)
+    }
+    const  onM =  (e) => {
+
+      const curPos = getRelativePosition(e, this.parent.node);
+      const finalPos = [curPos[0] - int.offset[0], curPos[1] - int.offset[1]];
+
+      this.setState({
+        translate: finalPos
+      })
+      
+      if (!config.onMove || typeof(config.onMove) !== 'function' ) return
+      config.onMove(e, data)
+    }
+    const  onU = (e) => {
+
+      window.removeEventListener('mousemove', onM)
+      window.removeEventListener('mouseup', onU)
+      
+      if (!config.onUp || typeof(config.onUp) !== 'function' ) return
+      config.onUp(e, data)
+    }
+
+    return data
+
+  } // adds click and drag functionality
   
 } // used by SVG.ren to create new node objects
+
+// Utils
 
 function configureElement(node, config) {
 
@@ -277,8 +331,6 @@ function configureElement(node, config) {
   }
   
 } // used by SVG and createElement to setup node attributes
-
-// Utils
 
 function processKey(str) {
   const underscoreIndex = str.indexOf('_');
@@ -333,4 +385,16 @@ function findRanges(str, archive, target) {
 
   return objs
   
+}
+
+export function getRelativePosition(event, object) {
+
+  const { x, y, width, height } = object.getBoundingClientRect();
+  const [vbX, vbY, vbWidth, vbHeight] = extNumbers(object.getAttribute('viewBox'));
+  
+  return [
+    (event.clientX - x) / width * vbWidth + vbX,
+    (event.clientY - y) / height * vbHeight + vbY
+  ];
+
 }
