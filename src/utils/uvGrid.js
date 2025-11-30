@@ -39,16 +39,20 @@ get(key) {
 class Grid {
 
   uvs
+  #data
 
   constructor(gridSize) {
     this.uvs = generateUVCords(gridSize)
+    this.#data = {
+      distance: 1/Math.sqrt(this.uvs.length)
+    }
   }
 
   process(callBack) {
 
     this.uvs.forEach((v, i) => {
 
-      callBack(v, i)
+      callBack(v, this.#data, i)
       
     })
     
@@ -78,10 +82,6 @@ class Grid {
 
     if (!config) return
 
-    const data = {
-      distance: 1/Math.sqrt(this.uvs.length)
-    }
-
     let newArray = []
     let X = true;
     let Y = true;
@@ -93,8 +93,8 @@ class Grid {
 
       let x, y
 
-      if (X) x = config.x(uv[0], data, i);
-      if (Y) y = config.y(uv[1], data, i);
+      if (X) x = config.x(uv[0], this.#data, i);
+      if (Y) y = config.y(uv[1], this.#data, i);
 
       newArray.push([x || uv[0], y || uv[1]])
     })
