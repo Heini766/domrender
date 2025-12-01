@@ -34,8 +34,6 @@ export default class Node {
     if (!this.archive) return
 
     if (!target) return undefined
-    
-    const evalKey = processKey(target);
 
     if (typeof(config) === 'number') {
       const find = this.archive.get(target + `_${config}`);
@@ -78,8 +76,7 @@ export default class Node {
       
     }
 
-    if (!evalKey.hadUnderscore) return this.archive.get(target + `_0`)
-    return this.archive.get(evalKey.cleaned)
+    return this.archive.get(target + '_0')
   }
 
 }
@@ -91,8 +88,7 @@ class Element {
   #styles = {};
   #archive;
 
-  constructor(tag, config, archive, nodeType) {
-    if (!config || typeof(config) !== 'object' || Array.isArray(config)) config = {};
+  constructor(tag, config = {}, archive, nodeType) {
 
     if (typeof(tag) !== 'string') {
       console.warn(`Tag must be a string: ${tag}`)
@@ -103,18 +99,19 @@ class Element {
     
     this.node = nodeType(tag);
 
-    let id = config && config.id ? config.id : tag + 'Element';
+    if (config.id) this._key = config.id + `_0`
+    else this._key = tag + 'Element_0'
 
     let keyCount = 0;
     archive.forEach(item => {
-      const [extKey, extNum] = [processKey(item._key).cleaned, processKey(id).cleaned]
-      if (extKey === extNum) keyCount++;
-      if (keyCount) id = extKey + `_${keyCount}`
+      const scoreIn = item._key.indexOf('_');
+      const ogId = item._key.slice(0, scoreIn)
+      if (ogId === config.id) {
+        keyCount++
+      }
     })
-    if (!keyCount)  this._key = id + `_${keyCount}`
-    else this._key = id;
-
-    config.id = id;
+    if (keyCount) this._key = config.id + `_${keyCount}`;
+    config.id = this._key
 
     configureElement(this.node, config);
 
@@ -331,37 +328,6 @@ function configureElement(node, config) {
   }
   
 } // used by SVG and createElement to setup node attributes
-
-function processKey(str) {
-  const underscoreIndex = str.indexOf('_');
-  
-  if (underscoreIndex === -1) {
-    return {
-      original: str,
-      cleaned: str,
-      removedNumbers: '',
-      hadUnderscore: false
-    };
-  }
-  
-  const beforeUnderscore = str.substring(0, underscoreIndex); // Don't include the underscore
-  const afterUnderscore = str.substring(underscoreIndex + 1);
-  
-  // Extract numbers from the part after underscore
-  const numberMatch = afterUnderscore.match(/^\d+/);
-  const removedNumbers = numberMatch ? numberMatch[0] : '';
-  
-  // Remove numbers from the beginning of the part after underscore
-  const cleanedAfter = afterUnderscore.replace(/^\d+/, '');
-  
-  return {
-    original: str,
-    cleaned: beforeUnderscore + cleanedAfter, // No underscore included
-    removedNumbers: removedNumbers,
-    hadUnderscore: true,
-    numbersRemoved: removedNumbers.length > 0
-  };
-}
 
 function extNumbers(string) {
   if (typeof string !== 'string') return []; // Handle non-string input
