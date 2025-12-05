@@ -38,67 +38,67 @@ get(key) {
 
 class Grid {
 
-  uvs
-  #data
+uvs
+#data
 
-  constructor(gridSize) {
-    this.uvs = generateUVCords(gridSize)
-    this.#data = {
-      distance: 1/Math.sqrt(this.uvs.length)
-    }
+constructor(gridSize) {
+  this.uvs = generateUVCords(gridSize)
+  this.#data = {
+    distance: 1/Math.sqrt(this.uvs.length)
   }
+}
 
-  process(callBack) {
+process(callBack) {
 
-    this.uvs.forEach((v, i) => {
+  this.uvs.forEach((v, i) => {
 
-      callBack(v, this.#data, i)
-      
-    })
+    callBack(v, this.#data, i)
     
-  }
+  })
+  
+} // Loops through each uv and makes a callback
 
 edit(callBack) {
 
-      let newArray = [];
+let newArray = [];
 
-      this.uvs.forEach((v, i) => {
+this.uvs.forEach((v, i) => {
 
-    if (callBack(v, i)) {
-          newArray.push(v)
-        }
-        
-      })
+  if (callBack(v, i)) {
+    newArray.push(v)
+  }
+  
+})
 
-      this.uvs = newArray
-      
-  return this
+this.uvs = newArray
     
-  }
+return this
+  
+} // Loops through the current uvs and makes a callback. The boolean value returned from the callback determines if the uv is discarded
 
-  modify(config) {
+modify(config) {
 
-    if (!config) return
+  if (!config) return
 
-    let newArray = []
-    let X = true;
-    let Y = true;
+  let newArray = []
+  let X = true;
+  let Y = true;
 
-      if (typeof(config.x) !== 'function') X = undefined;
-      if (typeof(config.y) !== 'function') Y = undefined;
+    if (typeof(config.x) !== 'function') X = undefined;
+    if (typeof(config.y) !== 'function') Y = undefined;
 
-    this.uvs.forEach((uv, i) => {
+  this.uvs.forEach((uv, i) => {
 
-      let x, y
+    let x, y
 
-      if (X) x = config.x(uv[0], this.#data, i);
-      if (Y) y = config.y(uv[1], this.#data, i);
+    if (X) x = config.x(uv[0], this.#data, i);
+    if (Y) y = config.y(uv[1], this.#data, i);
 
-      newArray.push([x || uv[0], y || uv[1]])
-    })
+    newArray.push([x || uv[0], y || uv[1]])
+  })
 
-    this.uvs = newArray
-  }
+  this.uvs = newArray
+} // Take an object of x and y values and makes a callback for each where the return value becomes the new x and y for the current uv
   
 }
 
