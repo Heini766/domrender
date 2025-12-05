@@ -262,7 +262,7 @@ class Element {
     const data = {
       object: this,
       active: (set) => {
-        if (this.node && set) this.node.addEventListener('mousedown', onD)
+        if (set) this.node.addEventListener('mousedown', onD)
         else if (!this.node) console.warn(this.node, 'is not a DOM node')
         else this.node.removeEventListener('mousedown', onD)
         }
@@ -275,9 +275,12 @@ class Element {
       window.addEventListener('mouseup', onU)
 
       const initPos = getRelativePosition(e, this.parent.node);
-      const shapePos = this.getState('translate');
+      let shapePos = this.getState('translate');
 
-      if (!shapePos) return console.warn(`transform wasn't set`)
+      if (!Array.isArray(shapePos)) {
+        this.setState({translate: [0, 0]})
+        shapePos = this.getState('translate')
+      }
 
       int.offset = [initPos[0] - shapePos[0], initPos[1] - shapePos[1]]
       
