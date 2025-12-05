@@ -58,15 +58,13 @@ class Grid {
     
   }
 
-  edit(config = {}) {
-
-    if (config && config.include) {
+edit(callBack) {
 
       let newArray = [];
 
       this.uvs.forEach((v, i) => {
 
-        if (config.include(v, i)) {
+    if (callBack(v, i)) {
           newArray.push(v)
         }
         
@@ -74,7 +72,7 @@ class Grid {
 
       this.uvs = newArray
       
-    }
+  return this
     
   }
 
