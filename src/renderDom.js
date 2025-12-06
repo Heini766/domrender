@@ -132,7 +132,7 @@ class Element {
     
   }
 
-  setState(config = {}) {
+  setState(config = {}, callBack) {
     // Input validation
     
     if (!config || typeof config !== 'object') {
@@ -176,17 +176,11 @@ class Element {
       }
     });
 
-    return {
-      object: this,
-      then: (callBack) => {
-        let value
-        if (callBack && typeof(callBack) === 'function') {
-          value = callBack(this)
-        }
-        if (value) return value
-        else return this
-      }
+    if (callBack && typeof(callBack) === 'function') {
+      callBack(this)
     }
+
+    return this
     
   }
 
@@ -244,9 +238,7 @@ class Element {
     this.node.childNodes.forEach(item => {
       
       if (typeof(item.data) === 'string') return
-      const evalKey = processKey(item.id);
-      if (!evalKey.hadUnderscore) targets.push(item.id + `_0`)
-      else targets.push(item.id)
+      targets.push(item.id)
       
     })
 
@@ -307,6 +299,8 @@ class Element {
       if (!config.onUp || typeof(config.onUp) !== 'function' ) return
       config.onUp(e, data)
     }
+
+    data.active(config.active)
 
     return data
 
