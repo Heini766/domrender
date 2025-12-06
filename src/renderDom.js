@@ -240,12 +240,12 @@ purge() {
   this.#purgeInnerNodes(this, this.#archive)
 }
 
-#purgeInnerNodes(node, archive) {
+#purgeInnerNodes(node) {
   if (!node.innerNodes || node.innerNodes.length === 0) return;
   
   node.innerNodes.forEach(item => {
-    archive.delete(item._key);
-    this.#purgeInnerNodes(item, archive);
+    this.#archive.delete(item._key);
+    this.#purgeInnerNodes(item);
   });
 } // helper function for purging inner nodes
 
