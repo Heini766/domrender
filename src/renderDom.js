@@ -1,83 +1,83 @@
 export default class Node {
 
-  #dom
-  #type
-  #nodeTypes = {
-    'svg': (tag) => { return this.#dom.createElementNS('http://www.w3.org/2000/svg', tag) },
-    'html': (tag) => { return this.#dom.createElement(tag) }
+#dom
+#type
+#nodeTypes = {
+  'svg': (tag) => { return this.#dom.createElementNS('http://www.w3.org/2000/svg', tag) },
+  'html': (tag) => { return this.#dom.createElement(tag) }
+}
+
+constructor(dom, type) {
+
+  if (typeof(dom) !== 'object' || Array.isArray(dom)) return console.error(dom, `document is required`)
+  this.#dom = dom;
+
+  if (typeof(type) === 'string' && this.#nodeTypes[type]) {
+
+    this.#type = type;
+
+  } else {
+    console.warn(type, 'not a valid DOM node type')
+  }
+}
+
+make(tag, config) {
+
+  if (!this.archive) this.archive = new Map();
+  const newElement = new Element(tag, config, this.archive, this.#nodeTypes[this.#type]);
+  this.archive.set(newElement._key, newElement);
+
+  return newElement
+}
+
+get(target, config) {
+  if (!this.archive) return
+
+  if (!target) return undefined
+
+  if (typeof(config) === 'number') {
+    const find = this.archive.get(target + `_${config}`);
+    if (find) return find
   }
 
-  constructor(dom, type) {
+  if (Array.isArray(config)) {
+    let objs = [];
+    config.forEach(item => {
 
-    if (typeof(dom) !== 'object' || Array.isArray(dom)) return console.error(dom, `document is required`)
-    this.#dom = dom;
-
-    if (typeof(type) === 'string' && this.#nodeTypes[type]) {
-
-      this.#type = type;
-
-    } else {
-      console.warn(type, 'not a valid DOM node type')
-    }
-  }
-
-  make(tag, config) {
-
-    if (!this.archive) this.archive = new Map();
-    const newElement = new Element(tag, config, this.archive, this.#nodeTypes[this.#type]);
-    this.archive.set(newElement._key, newElement);
-
-    return newElement
-  }
-
-  get(target, config) {
-    if (!this.archive) return
-
-    if (!target) return undefined
-
-    if (typeof(config) === 'number') {
-      const find = this.archive.get(target + `_${config}`);
-      if (find) return find
-    }
-
-    if (Array.isArray(config)) {
-      let objs = [];
-      config.forEach(item => {
-
-        if (Number(item) || item === 0) {
-          const obj = this.archive.get(target + `_${item}`);
-          if (obj) objs.push(obj)
-        }
-        
-      })
-      if (objs.length === 1) return objs[0]
-      return objs
-    } // When the config passed is an array of numers
-
-    if (typeof(config) === 'object' && !Array.isArray(config)) {
-
-      if (config.range && typeof(config.range) === 'string') {
-
-        return findRanges(config.range, this.archive, target)
-        
+      if (Number(item) || item === 0) {
+        const obj = this.archive.get(target + `_${item}`);
+        if (obj) objs.push(obj)
       }
+      
+    })
+    if (objs.length === 1) return objs[0]
+    return objs
+  } // When the config passed is an array of numers
 
-      if (Array.isArray(config.range)) {
+  if (typeof(config) === 'object' && !Array.isArray(config)) {
 
-        let objs = [];
+    if (config.range && typeof(config.range) === 'string') {
 
-        config.range.forEach(item => {
-
-          objs = [ ...objs , ...findRanges(item, this.archive, target)]
-
-        })
-        return objs
-      }
+      return findRanges(config.range, this.archive, target)
       
     }
 
-    return this.archive.get(target + '_0')
+    if (Array.isArray(config.range)) {
+
+      let objs = [];
+
+      config.range.forEach(item => {
+
+        objs = [ ...objs , ...findRanges(item, this.archive, target)]
+
+      })
+      return objs
+    }
+    
   }
+
+  return this.archive.get(target + '_0')
+}
 
 }
 
@@ -85,226 +85,226 @@ export default class Node {
 
 class Element {
 
-  #styles = {};
-  #archive;
+#styles = {};
+#archive;
 
-  constructor(tag, config = {}, archive, nodeType) {
+constructor(tag, config = {}, archive, nodeType) {
 
-    if (typeof(tag) !== 'string') {
-      console.warn(`Tag must be a string: ${tag}`)
-      return
+  if (typeof(tag) !== 'string') {
+    console.warn(`Tag must be a string: ${tag}`)
+    return
+  }
+
+  this.#archive = archive;
+  
+  this.node = nodeType(tag);
+
+  if (config.id) this._key = config.id + `_0`
+  else this._key = tag + 'Element_0'
+
+  let keyCount = 0;
+  archive.forEach(item => {
+    const scoreIn = item._key.indexOf('_');
+    const ogId = item._key.slice(0, scoreIn)
+    if (ogId === config.id) {
+      keyCount++
     }
+  })
+  if (keyCount) this._key = config.id + `_${keyCount}`;
+  config.id = this._key
 
-    this.#archive = archive;
+  configureElement(this.node, config);
+
+}
+
+add(nodes) {
+
+  if (typeof(nodes) === 'function') nodes = nodes();
+  nodes = Array.isArray(nodes) ? nodes : [nodes];
+  
+  nodes.forEach(item => {
+    if (!item) return this
+    item.parent = this;
+    if (!this.innerNodes) this.innerNodes = [];
+    this.innerNodes.push(item)
+    this.node.appendChild(item.node);
+  });
+
+  return this
+  
+}
+
+setState(config = {}, callBack) {
+  // Input validation
+  
+  if (!config || typeof config !== 'object') {
+    console.warn('Invalid config provided');
+    return this;
+  }
+
+  const currentData = this.#styles ? this.#styles : {};
+  
+  // Merge config with existing data (config takes precedence)
+  const mergedData = { ...currentData, ...config };
+  this.#styles = mergedData;
+
+  const changedProps = new Set();
+
+  // Find what actually changed
+  for (const key in mergedData) {
+    if (currentData[key] !== mergedData[key]) {
+      changedProps.add(key);
+    }
+  }
+
+  // Apply changes to DOM
+  changedProps.forEach(attr => {
+    let value = mergedData[attr];
     
-    this.node = nodeType(tag);
+    // Transform values for CSS
+    if (Array.isArray(value) && value.length === 2 && attr === 'translate') {
+      value = `${value[0]}px ${value[1]}px`;
+    } else if (Array.isArray(value) && value.length === 2 && attr === 'scale') {
+      value = `${value[0]} ${value[1]}`;
+    } else if (attr === 'rotate') {
+      value = `${value}deg`;
+    }
+    
+    // Apply to style (with validation)
+    if (attr in this.node.style) {
+      this.node.style[attr] = value;
+    } else {
+      console.warn(`Invalid style property: ${attr}`);
+    }
+  });
 
-    if (config.id) this._key = config.id + `_0`
-    else this._key = tag + 'Element_0'
+  if (callBack && typeof(callBack) === 'function') {
+    callBack(this)
+  }
 
-    let keyCount = 0;
-    archive.forEach(item => {
-      const scoreIn = item._key.indexOf('_');
-      const ogId = item._key.slice(0, scoreIn)
-      if (ogId === config.id) {
-        keyCount++
-      }
+  return this
+  
+}
+
+getState(styles) {
+
+  if (typeof(styles) === 'string' && this.#styles[styles]) return this.#styles[styles]
+
+  if (Array.isArray(styles)) {
+    const props = {};
+    
+    styles.forEach(item => {
+
+      if (typeof(item) !== 'string' || !this.#styles[item]) return
+      props[item] = this.#styles[item];
+
     })
-    if (keyCount) this._key = config.id + `_${keyCount}`;
-    config.id = this._key
 
-    configureElement(this.node, config);
+    if (Object.keys(props).length === 1) return props[styles[0]]
+    return props
+  }
+  
+  return this.#styles
+  
+}
 
+move(newParent) {
+  
+  if (newParent) {
+    this.parent = newParent;
+    this.place()
+  }
+  else {
+    console.warn(newParent, 'not a valid object type')
+    return
   }
 
-  add(nodes) {
+  return this
+  
+}
 
-    if (typeof(nodes) === 'function') nodes = nodes();
-    nodes = Array.isArray(nodes) ? nodes : [nodes];
-    
-    nodes.forEach(item => {
-      if (!item) return this
-      item.parent = this;
-      if (!this.innerNodes) this.innerNodes = [];
-      this.innerNodes.push(item)
-      this.node.appendChild(item.node);
-    });
+cut() {
+  this.node.remove();
+}
 
-    return this
-    
-  }
+place() {
+  if (!this.parent) document.body.appendChild(this.node)
+  else
+  this.parent.node.appendChild(this.node)
+}
 
-  setState(config = {}, callBack) {
-    // Input validation
-    
-    if (!config || typeof config !== 'object') {
-      console.warn('Invalid config provided');
-      return this;
-    }
+purge() {
+  this.#archive.delete(this._key);
+  this.node.remove();
 
-    const currentData = this.#styles ? this.#styles : {};
-    
-    // Merge config with existing data (config takes precedence)
-    const mergedData = { ...currentData, ...config };
-    this.#styles = mergedData;
+  this.#purgeInnerNodes(this, this.#archive)
+}
 
-    const changedProps = new Set();
+#purgeInnerNodes(node, archive) {
+  if (!node.innerNodes || node.innerNodes.length === 0) return;
+  
+  node.innerNodes.forEach(item => {
+    archive.delete(item._key);
+    this.#purgeInnerNodes(item, archive);
+  });
+} // helper function for purging inner nodes
 
-    // Find what actually changed
-    for (const key in mergedData) {
-      if (currentData[key] !== mergedData[key]) {
-        changedProps.add(key);
+draggable(config = {}) {
+
+  const data = {
+    object: this,
+    active: (set) => {
+      if (set) this.node.addEventListener('mousedown', onD)
+      else if (!this.node) console.warn(this.node, 'is not a DOM node')
+      else this.node.removeEventListener('mousedown', onD)
       }
-    }
-
-    // Apply changes to DOM
-    changedProps.forEach(attr => {
-      let value = mergedData[attr];
-      
-      // Transform values for CSS
-      if (Array.isArray(value) && value.length === 2 && attr === 'translate') {
-        value = `${value[0]}px ${value[1]}px`;
-      } else if (Array.isArray(value) && value.length === 2 && attr === 'scale') {
-        value = `${value[0]} ${value[1]}`;
-      } else if (attr === 'rotate') {
-        value = `${value}deg`;
-      }
-      
-      // Apply to style (with validation)
-      if (attr in this.node.style) {
-        this.node.style[attr] = value;
-      } else {
-        console.warn(`Invalid style property: ${attr}`);
-      }
-    });
-
-    if (callBack && typeof(callBack) === 'function') {
-      callBack(this)
-    }
-
-    return this
-    
   }
 
-  getState(styles) {
+  let int = {}
+  const  onD = (e) => {
 
-    if (typeof(styles) === 'string' && this.#styles[styles]) return this.#styles[styles]
+    window.addEventListener('mousemove', onM)
+    window.addEventListener('mouseup', onU)
 
-    if (Array.isArray(styles)) {
-      const props = {};
-      
-      styles.forEach(item => {
+    const initPos = getRelativePosition(e, this.parent.node);
+    let shapePos = this.getState('translate');
 
-        if (typeof(item) !== 'string' || !this.#styles[item]) return
-        props[item] = this.#styles[item];
-
-      })
-
-      if (Object.keys(props).length === 1) return props[styles[0]]
-      return props
+    if (!Array.isArray(shapePos)) {
+      this.setState({translate: [0, 0]})
+      shapePos = this.getState('translate')
     }
+
+    int.offset = [initPos[0] - shapePos[0], initPos[1] - shapePos[1]]
     
-    return this.#styles
+    if (!config.onDown || typeof(config.onDown) !== 'function' ) return
+    config.onDown(e, data)
+  }
+  const  onM =  (e) => {
+
+    const curPos = getRelativePosition(e, this.parent.node);
+    const finalPos = [curPos[0] - int.offset[0], curPos[1] - int.offset[1]];
+
+    this.setState({
+      translate: finalPos
+    })
     
+    if (!config.onMove || typeof(config.onMove) !== 'function' ) return
+    config.onMove(e, data)
+  }
+  const  onU = (e) => {
+
+    window.removeEventListener('mousemove', onM)
+    window.removeEventListener('mouseup', onU)
+    
+    if (!config.onUp || typeof(config.onUp) !== 'function' ) return
+    config.onUp(e, data)
   }
 
-  move(newParent) {
-    
-    if (newParent) {
-      this.parent = newParent;
-      this.place()
-    }
-    else {
-      console.warn(newParent, 'not a valid object type')
-      return
-    }
+  data.active(config.active)
 
-    return this
-    
-  }
+  return data
 
-  cut() {
-    this.node.remove();
-  }
-
-  place() {
-    if (!this.parent) document.body.appendChild(this.node)
-    else
-    this.parent.node.appendChild(this.node)
-  }
-
-  purge() {
-    this.#archive.delete(this._key);
-this.node.remove();
-
-    this.#purgeInnerNodes(this, this.#archive)
-  }
-
-  #purgeInnerNodes(node, archive) {
-    if (!node.innerNodes || node.innerNodes.length === 0) return;
-    
-    node.innerNodes.forEach(item => {
-      archive.delete(item._key);
-      this.#purgeInnerNodes(item, archive);
-    });
-  } // helper function for purging inner nodes
-
-  draggable(config = {}) {
-
-    const data = {
-      object: this,
-      active: (set) => {
-        if (set) this.node.addEventListener('mousedown', onD)
-        else if (!this.node) console.warn(this.node, 'is not a DOM node')
-        else this.node.removeEventListener('mousedown', onD)
-        }
-    }
-
-    let int = {}
-    const  onD = (e) => {
-
-      window.addEventListener('mousemove', onM)
-      window.addEventListener('mouseup', onU)
-
-      const initPos = getRelativePosition(e, this.parent.node);
-      let shapePos = this.getState('translate');
-
-      if (!Array.isArray(shapePos)) {
-        this.setState({translate: [0, 0]})
-        shapePos = this.getState('translate')
-      }
-
-      int.offset = [initPos[0] - shapePos[0], initPos[1] - shapePos[1]]
-      
-      if (!config.onDown || typeof(config.onDown) !== 'function' ) return
-      config.onDown(e, data)
-    }
-    const  onM =  (e) => {
-
-      const curPos = getRelativePosition(e, this.parent.node);
-      const finalPos = [curPos[0] - int.offset[0], curPos[1] - int.offset[1]];
-
-      this.setState({
-        translate: finalPos
-      })
-      
-      if (!config.onMove || typeof(config.onMove) !== 'function' ) return
-      config.onMove(e, data)
-    }
-    const  onU = (e) => {
-
-      window.removeEventListener('mousemove', onM)
-      window.removeEventListener('mouseup', onU)
-      
-      if (!config.onUp || typeof(config.onUp) !== 'function' ) return
-      config.onUp(e, data)
-    }
-
-    data.active(config.active)
-
-    return data
-
-  } // adds click and drag functionality
+} // adds click and drag functionality
   
 } // used by SVG.ren to create new node objects
 
