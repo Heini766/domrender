@@ -125,6 +125,8 @@ class Element {
     nodes.forEach(item => {
       if (!item) return this
       item.parent = this;
+      if (!this.innerNodes) this.innerNodes = [];
+      this.innerNodes.push(item)
       this.node.appendChild(item.node);
     });
 
@@ -233,21 +235,19 @@ class Element {
 
   purge() {
     this.#archive.delete(this._key);
+this.node.remove();
 
-    let targets = [];
-    this.node.childNodes.forEach(item => {
-      
-      if (typeof(item.data) === 'string') return
-      targets.push(item.id)
-      
-    })
-
-    targets.forEach(item => {
-      this.#archive.delete(item)
-    })
-
-    this.node.remove()
+    this.#purgeInnerNodes(this, this.#archive)
   }
+
+  #purgeInnerNodes(node, archive) {
+    if (!node.innerNodes || node.innerNodes.length === 0) return;
+    
+    node.innerNodes.forEach(item => {
+      archive.delete(item._key);
+      this.#purgeInnerNodes(item, archive);
+    });
+  } // helper function for purging inner nodes
 
   draggable(config = {}) {
 
@@ -350,7 +350,7 @@ function findRanges(str, archive, target) {
   
 }
 
-export function getRelativePosition(event, object) {
+function getRelativePosition(event, object) {
 
   const { x, y, width, height } = object.getBoundingClientRect();
   const [vbX, vbY, vbWidth, vbHeight] = extNumbers(object.getAttribute('viewBox'));
