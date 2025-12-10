@@ -8,6 +8,23 @@ getDistance: (pos1, pos2) => {
     euclideanDistance: euclideanD,
     dxy: [dx, dy]
   };
+},
+
+mix: (a, b, t) => {
+  // Handle numbers
+  if (typeof a === 'number' && typeof b === 'number') {
+      return a * (1 - t) + b * t;
+  }
+  
+  // Handle arrays (vectors)
+  if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) {
+          throw new Error('Arrays must have the same length');
+      }
+      return a.map((val, i) => mix(val, b[i], t));
+  }
+  
+  throw new Error('Parameters must be both numbers or both arrays');
 }
   
 }

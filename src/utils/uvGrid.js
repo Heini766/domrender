@@ -14,21 +14,60 @@ new(gridSize = [], name) {
     return newGrid
   } else {
     const newGrid = new Grid(gridSize)
-    this.#archive.set(`Map_${this.#archive.size}`, newGrid)
+    this.#archive.set(`map_${this.#archive.size}`, newGrid)
     return newGrid
   }
   
 }
 
-get(key) {
+get(target, config) {
 
-  if (this.#archive.size < 1) {
-    console.warn('No uv grids werre created yet')
-    return
+  if (!this.#archive) return
+
+  if (!target) return undefined
+
+  if (typeof(config) === 'number') {
+    const find = this.#archive.get(target + `_${config}`);
+    if (find) return find
   }
 
-  if (key) return this.#archive.get(key)
-  else return this.#archive.get(`Map_${this.#archive.size - 1}`)
+  if (Array.isArray(config)) {
+    let objs = [];
+    config.forEach(item => {
+
+      if (Number(item) || item === 0) {
+        const obj = this.#archive.get(target + `_${item}`);
+        if (obj) objs.push(obj)
+      }
+      
+    })
+    if (objs.length === 1) return objs[0]
+    return objs
+  } // When the config passed is an array of numers
+
+  if (typeof(config) === 'object' && !Array.isArray(config)) {
+
+    if (config.range && typeof(config.range) === 'string') {
+
+      return findRanges(config.range, this.#archive, target)
+      
+    }
+
+    if (Array.isArray(config.range)) {
+
+      let objs = [];
+
+      config.range.forEach(item => {
+
+        objs = [ ...objs , ...findRanges(item, this.#archive, target)]
+
+      })
+      return objs
+    }
+    
+  }
+
+  return this.#archive.get(target + '_0')
   
 }
   
@@ -50,11 +89,16 @@ constructor(gridSize) {
 
 process(callBack) {
 
+  let output = [];
   this.uvs.forEach((v, i) => {
 
-    callBack(v, this.#data, i)
+    const value = callBack(v, this.#data, i);
+
+    if (value) output.push(value)
     
   })
+
+  return output
   
 } // Loops through each uv and makes a callback
 
