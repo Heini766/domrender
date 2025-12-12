@@ -240,6 +240,18 @@ purge() {
   this.#purgeInnerNodes(this, this.#archive)
 }
 
+append(name, data) {
+  if (!this.appendices) this.appendices = new Map();
+  if (!name || typeof(name) !== 'string') {
+    console.warn(`Name for appended data is: ${name}`)
+    return
+  }
+
+  this.appendices.set(name, data)
+  
+  return this
+}
+
 #purgeInnerNodes(node) {
   if (!node.innerNodes || node.innerNodes.length === 0) return;
   
