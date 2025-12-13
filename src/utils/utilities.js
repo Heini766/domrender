@@ -1,4 +1,4 @@
-export const customUtils = {
+const cUtils = {
 
 getDistance: (pos1, pos2) => {
   const dx = pos2[0] - pos1[0]; // Difference in x-coordinates
@@ -25,6 +25,16 @@ mix: (a, b, t) => {
   }
   
   throw new Error('Parameters must be both numbers or both arrays');
+},
+
+getRelPos: (e) => {
+
+  const curPos = [e.clientX, e.clientY];
+  const nodeData = e.target.getBoundingClientRect();
+  return [curPos[0] - nodeData.x, curPos[1] - nodeData.y]
+  
 }
   
 }
+
+export default cUtils
