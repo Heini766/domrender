@@ -149,15 +149,15 @@ modify(config) {
 // Helper functions
 
 function generateUVCords(gridSize) {
-
-  let uvs = []
+  let uvs = [];
+  const segmentsX = Math.floor(gridSize[0]);
+  const segmentsY = Math.floor(gridSize[1]);
   
-  for (let y = 0; y <= gridSize[1]; y += 1) {
-    for (let x = 0; x <= gridSize[0]; x += 1) {
-      uvs.push([x / gridSize[0], y / gridSize[1]]);
+  for (let y = 0; y <= segmentsY; y++) {
+    for (let x = 0; x <= segmentsX; x++) {
+      uvs.push([x / segmentsX, y / segmentsY]);
     }
   }
-
-  return uvs
   
+  return uvs;
 }
