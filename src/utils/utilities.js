@@ -1,6 +1,4 @@
-const cUtils = {
-
-getDistance: (pos1, pos2) => {
+export function getDistance(pos1, pos2) {
   const dx = pos2[0] - pos1[0]; // Difference in x-coordinates
   const dy = pos2[1] - pos1[1]; // Difference in y-coordinates
   const euclideanD = Math.sqrt(dx * dx + dy * dy);  // Euclidean distance
@@ -8,9 +6,9 @@ getDistance: (pos1, pos2) => {
     euclideanDistance: euclideanD,
     dxy: [dx, dy]
   };
-},
+}
 
-mix: (a, b, t) => {
+export function mix(a, b, t) {
   // Handle numbers
   if (typeof a === 'number' && typeof b === 'number') {
       return a * (1 - t) + b * t;
@@ -25,16 +23,12 @@ mix: (a, b, t) => {
   }
   
   throw new Error('Parameters must be both numbers or both arrays');
-},
+}
 
-getRelPos: (e) => {
+export function getRelPos(e) {
 
   const curPos = [e.clientX, e.clientY];
   const nodeData = e.target.getBoundingClientRect();
   return [curPos[0] - nodeData.x, curPos[1] - nodeData.y]
   
 }
-  
-}
-
-export default cUtils

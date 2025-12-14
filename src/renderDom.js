@@ -250,7 +250,7 @@ append(name, data) {
   this.appendices.set(name, data)
   
   return this
-}
+} // Used to attach data to this object
 
 #purgeInnerNodes(node) {
   if (!node.innerNodes || node.innerNodes.length === 0) return;
