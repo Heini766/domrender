@@ -27,6 +27,12 @@ make(tag, config) {
   const newElement = new Element(tag, config, this.archive, this.#nodeTypes[this.#type]);
   this.archive.set(newElement._key, newElement);
 
+  if (this.#type=== 'svg') {
+    const vB = newElement.node.getAttribute('viewBox');
+    if (vB) this.vB = vB;
+    newElement.viewBox = this.vB;
+  }
+
   return newElement
 }
 
@@ -240,6 +246,24 @@ purge() {
   this.#purgeInnerNodes(this, this.#archive)
 }
 
+align(pos) {
+
+  if (!this.parent) {
+    console.warn('Unable to align. Parent node is', this.parent)
+  }
+
+  const vB = extNumbers(this.viewBox);
+  alignMethods[pos](vB, this)
+
+  return {
+    to: (node) => {
+      alignMethods[pos](node, this)
+    }
+  }
+  
+}
+
+
 append(name, data) {
   if (!this.appendices) this.appendices = new Map();
   if (!name || typeof(name) !== 'string') {
@@ -372,4 +396,96 @@ function getRelativePosition(event, object) {
     (event.clientY - y) / height * vbHeight + vbY
   ];
 
+}
+
+// Alignment
+
+const alignMethods = {
+  'center': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width/2, data.height/2]})
+    } else {
+      node.setState({translate: [data.x, data.y]})
+    }
+  },
+  'center top': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width/2, data.y]})
+    } else {
+      node.setState({translate: [data.x, data.y - data.height/2]})
+    }
+  },
+  'center left': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.x, data.height/2]})
+    } else {
+      node.setState({translate: [data.x - data.width/2, data.y]})
+    }
+  },
+  'center right': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width, data.height/2]})
+    } else {
+      node.setState({translate: [data.x + data.width/2, data.y]})
+    }
+  },
+  'center bottom': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width/2, data.height]})
+    } else {
+      node.setState({translate: [data.x, data.y  + data.width/2]})
+    }
+  },
+  'top left': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.x, data.y]})
+    } else {
+      node.setState({translate: [data.x - data.width/2, data.y - data.height/2]})
+    }
+  },
+  'top right': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width, data.y]})
+    } else {
+      node.setState({translate: [data.x + data.width/2, data.y - data.height/2]})
+    }
+  },
+  'bottom left': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.x, data.height]})
+    } else {
+      node.setState({translate: [data.x - data.width/2, data.y + data.height/2]})
+    }
+  },
+  'bottom right': (vB, node) => {
+    const data = alignCheck(vB)
+    if (data.global) {
+      node.setState({translate: [data.width, data.height]})
+    } else {
+      node.setState({translate: [data.x + data.width/2, data.y + data.height/2]})
+    }
+  },
+
+  
+}
+
+function alignCheck(vB) {
+
+  if (Array.isArray(vB)) return {x: vB[0], y: vB[1], width: vB[2], height: vB[3], global: true}
+
+  if (!vB.node) return
+
+  const pos = vB.getState('translate');
+  const data = vB.node.getBBox()
+  
+  return {x: pos[0], y: pos[1], width: data.width, height: data.height, global: false}
+  
 }
