@@ -28,7 +28,7 @@ export function mix(a, b, t) {
 export function getRelPos(e) {
 
   const curPos = [e.clientX, e.clientY];
-  const nodeData = e.target.getBoundingClientRect();
+  const nodeData = e.target.getBBox();
   return [curPos[0] - nodeData.x, curPos[1] - nodeData.y]
   
 }
