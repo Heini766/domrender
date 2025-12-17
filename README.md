@@ -9,4 +9,5 @@ npm install Heini766/domrender
 
 import Node from 'domrender';
 import Node from 'https://cdn.jsdelivr.net/gh/Heini766/domrender@refs/heads/main/src/renderDom.js';
-import {utility functions} from 
+import {utility functions} from 'https://cdn.jsdelivr.net/gh/Heini766/domrender@main/src/utils/utilities.js'
+
