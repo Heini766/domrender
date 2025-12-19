@@ -1,4 +1,6 @@
-export function getDistance(pos1, pos2) {
+export default utils = {
+
+getDistance: (pos1, pos2) => {
   const dx = pos2[0] - pos1[0]; // Difference in x-coordinates
   const dy = pos2[1] - pos1[1]; // Difference in y-coordinates
   const euclideanD = Math.sqrt(dx * dx + dy * dy);  // Euclidean distance
@@ -6,32 +8,32 @@ export function getDistance(pos1, pos2) {
     euclideanDistance: euclideanD,
     dxy: [dx, dy]
   };
-}; // Returns the distance between two points
+}, // Returns the distance between two points
 
-export function getPointAlongPath(element, offset) {
+getPointAlongPath: (element, offset) => {
   const pathLength = element.getTotalLength();
   const pos = element.getPointAtLength(offset * pathLength)
   return [pos.x, pos.y];
-};
+},
 
-export function getPointAngle(element, offset) {
+getPointAngle: (element, offset) => {
 
   const p1 = getPointAlongPath(element, offset - .005);
   const p2 = getPointAlongPath(element, offset + .005);
 
   return calcLineAngle(p1, p2);
   
-}; // Returns the angle of a point on a curve
+},// Returns the angle of a point on a curve
 
-export function getPosOnLine(pos1, pos2, offset) {
+getPosOnLine: (pos1, pos2, offset) => {
   const dx = (pos2.x - pos1.x) * offset; // Difference in x-coordinates
   const dy = (pos2.y - pos1.y) * offset; // Difference in y-coordinates
   const offsetX = pos1.x + dx;
   const offsetY = pos1.y + dy;
   return {x: offsetX, y: offsetY};
-}; // Returns a position along a line
+}, // Returns a position along a line
 
-export function getRelativePosition(event, object) {
+getRelativePosition: (event, object) => {
 
   const { x, y, width, height } = object.getBoundingClientRect();
   const [vbX, vbY, vbWidth, vbHeight] = extNumbers(object.getAttribute('viewBox'));
@@ -41,20 +43,20 @@ export function getRelativePosition(event, object) {
     (event.clientY - y) / height * vbHeight + vbY
   ];
 
-} // Returns the relative position of the cursor to a SVG node object
+}, // Returns the relative position of the cursor to a SVG node object
 
-export function getRandomPos(size, ratio) {
+getRandomPos: (size, ratio) => {
   return {
     x: (Math.random() * (ratio.x - 2 * size) + size) - ratio.x / 2,
     y: (Math.random() * (ratio.y - 2 * size) + size) - ratio.y / 2
   };
-}
+},
 /* Return a random x and y cordinate in side the give ratio
 size = The dimensions of the element that spawns in
 ratio = The ratio of the shape where the object is spawning in
 */
 
-export function gerRelativeRPos(r, cords) {
+gerRelativeRPos: (r, cords) => {
 
   if (!cords) {
     cords = {x: 0, y: 0};
@@ -65,13 +67,13 @@ export function gerRelativeRPos(r, cords) {
   const rPos = {x: cordX, y: cordY};
   return rPos
   
-}; // Finds a random position around a given position
+}, // Finds a random position around a given position
 
-export function clamp(number, min, max) {
+clamp: (number, min, max) => {
     return Math.min(Math.max(number, min), max);
-}; // Clamps the result of a calculation.
+}, // Clamps the result of a calculation.
 
-export function createCustomProp(data) {
+createCustomProp: (data) => {
 
   const propNames = Object.keys(data);
   const propValues = Object.values(data);
@@ -84,9 +86,9 @@ export function createCustomProp(data) {
 
   return data
   
-}; // Can be used to create css custom properties.
+}, // Can be used to create css custom properties.
 
-export function getRadPoints(offset, length, cords) {
+getRadPoints: (offset, length, cords) => {
 
   const angleRad = offset * 2 * Math.PI;
   const angleDeg = angleRad * (180/Math.PI);
@@ -100,9 +102,9 @@ export function getRadPoints(offset, length, cords) {
     return {x: cordX, y: cordY, angleRad: angleRad, angleDeg: angleDeg}
   };
   
-}; // Calculates the cords along the edge of a circle
+}, // Calculates the cords along the edge of a circle
 
-export function calcLineAngle(point1, point2) {
+calcLineAngle: (point1, point2) => {
   const deltaX = point2[0] - point1[0];
   const deltaY = point2[1] - point1[1];
 
@@ -111,15 +113,15 @@ export function calcLineAngle(point1, point2) {
   const normalisedAngle  = (angleDegrees + 360) % 360;
 
   return {rad: angleRadians, deg: angleDegrees, degNor: normalisedAngle};
-}; // Returns the angle (radians, degrees, normalised degrees) based on two points. 
+}, // Returns the angle (radians, degrees, normalised degrees) based on two points. 
 
-export function extNumbers(string) {
+extNumbers: (string) => {
   if (typeof string !== 'string') return []; // Handle non-string input
   const nums = string.match(/-?\d+\.?\d*/g)?.map(Number) || [];
   return nums.filter(n => !isNaN(n)); // Remove NaN entries (invalid numbers)
-}; // Returns an array containing the numbers in a string
+}, // Returns an array containing the numbers in a string
 
-export function getRandomItems(array, count) {
+getRandomItems: (array, count) => {
     const shuffled = [...array]; // Create a copy
     
     // Fisher-Yates shuffle
@@ -129,13 +131,13 @@ export function getRandomItems(array, count) {
     }
     
     return shuffled.slice(0, count);
-} // Takes an array and returns a given number of random values from the array.
+}, // Takes an array and returns a given number of random values from the array.
 
-export function isMobileDevice() {
+isMobileDevice: () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
+},
 
-export function mix(a, b, t) {
+mix: (a, b, t) => {
   // Handle numbers
   if (typeof a === 'number' && typeof b === 'number') {
       return a * (1 - t) + b * t;
@@ -150,12 +152,14 @@ export function mix(a, b, t) {
   }
   
   throw new Error('Parameters must be both numbers or both arrays');
-}
+},
 
-export function getRelPos(e) {
+getRelPos: (e) => {
 
   const curPos = [e.clientX, e.clientY];
   const nodeData = e.target.getBBox();
   return [curPos[0] - nodeData.x, curPos[1] - nodeData.y]
   
+}
+
 }
