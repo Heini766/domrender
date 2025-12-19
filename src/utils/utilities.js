@@ -1,4 +1,4 @@
-export default utils = {
+const utils = {
 
 getDistance: (pos1, pos2) => {
   const dx = pos2[0] - pos1[0]; // Difference in x-coordinates
@@ -163,3 +163,5 @@ getRelPos: (e) => {
 }
 
 }
+
+export default utils
