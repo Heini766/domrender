@@ -164,4 +164,10 @@ getRelPos: (e) => {
 
 }
 
+function extNumbers(string) {
+  if (typeof string !== 'string') return []; // Handle non-string input
+  const nums = string.match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  return nums.filter(n => !isNaN(n)); // Remove NaN entries (invalid numbers)
+};
+
 export default utils
