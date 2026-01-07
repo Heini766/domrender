@@ -1,12 +1,16 @@
 {
   "name": "domrender",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A DOM rendering library",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/serializeTest.js"
   },
-  "keywords": ["dom", "render", "library"],
+  "keywords": [
+    "dom",
+    "render",
+    "library"
+  ],
   "author": "Heinrich",
   "license": "MIT",
   "repository": {
@@ -17,6 +21,8 @@
     "url": "https://github.com/Heini766/DOM-render-library/issues"
   },
   "homepage": "https://github.com/Heini766/DOM-render-library#readme",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "jsdom": "^27.4.0"
+  }
 }
-

@@ -1,20 +1,21 @@
 export default class Node {
 
-#dom
-#type
-#nodeTypes = {
-  'svg': (tag) => { return this.#dom.createElementNS('http://www.w3.org/2000/svg', tag) },
-  'html': (tag) => { return this.#dom.createElement(tag) }
+_dom
+_type
+archive
+_nodeTypes = {
+  'svg': (tag) => { return this._dom.createElementNS('http://www.w3.org/2000/svg', tag) },
+  'html': (tag) => { return this._dom.createElement(tag) }
 }
 
 constructor(dom, type) {
 
   if (typeof(dom) !== 'object' || Array.isArray(dom)) return console.error(dom, `document is required`)
-  this.#dom = dom;
+  this._dom = dom;
 
-  if (typeof(type) === 'string' && this.#nodeTypes[type]) {
+  if (typeof(type) === 'string' && this._nodeTypes[type]) {
 
-    this.#type = type;
+    this._type = type;
 
   } else {
     console.warn(type, 'not a valid DOM node type')
@@ -24,10 +25,10 @@ constructor(dom, type) {
 make(tag, config) {
 
   if (!this.archive) this.archive = new Map();
-  const newElement = new Element(tag, config, this.archive, this.#nodeTypes[this.#type]);
+  const newElement = new Element(tag, config, this.archive, this._nodeTypes[this._type]);
   this.archive.set(newElement._key, newElement);
 
-  if (this.#type=== 'svg') {
+  if (this._type=== 'svg') {
     const vB = newElement.node.getAttribute('viewBox');
     if (vB) this.vB = vB;
     newElement.viewBox = this.vB;
@@ -83,6 +84,79 @@ get(target, config) {
   }
 
   return this.archive.get(target + '_0')
+}
+
+serialize() {
+
+  let obj = {}
+
+  for (let item in this) {
+    if (item === '_nodeTypes') break
+    if (item === 'archive') {
+
+      const arr = Array.from(this[item].entries()).map(([k,v]) => [k, typeof v.serialize === 'function' ? v.serialize() : v]);
+      obj[item] = JSON.stringify(arr);
+      break
+      
+    }
+    obj[item] = this[item]
+  }
+
+  const toString = JSON.stringify(obj)
+
+  return toString
+  
+}
+
+parse(serData) {
+
+  const data = JSON.parse(serData)
+  
+  for (let item in data) {
+    
+    this[item] = data[item]
+
+    if (item === '_dom') this[item] = parse.parseFromString(data[item], 'text/html')
+    if (item === 'archive') {
+      const parsedArray = JSON.parse(data[item]);
+      this[item] = new Map();
+      // Reconstruct elements into archive using Element.parse
+      parsedArray.forEach(([key, ser]) => {
+        try {
+          Element.parse(ser, this[item], this._nodeTypes[this._type]);
+        } catch (e) {
+          // fallback: store raw
+          this[item].set(key, ser);
+        }
+      });
+      
+      // Second pass: restore innerNodes references for all elements now that archive is complete
+      parsedArray.forEach(([key, ser]) => {
+        const el = this[item].get(key);
+        if (!el || typeof el.serialize !== 'function') return; // Not an Element
+        
+        try {
+          const elData = typeof ser === 'string' ? JSON.parse(ser) : ser;
+          if (Array.isArray(elData.innerNodes)) {
+            el.innerNodes = [];
+            elData.innerNodes.forEach(childKey => {
+              const child = this[item].get(childKey);
+              if (child) {
+                el.innerNodes.push(child);
+                try { el.node.appendChild(child.node); } catch (e) {}
+                child.parent = el;
+              }
+            });
+          }
+        } catch (e) {}
+      });
+    }
+  }
+
+  console.log('Parsed:', this)
+
+  return this
+  
 }
 
 }
@@ -324,9 +398,130 @@ draggable(config = {}) {
 
 } // adds click and drag functionality
   
+serialize() {
+
+  const obj = {};
+
+  obj._key = this._key;
+
+  // Serialize node as outerHTML
+  try {
+    obj.node = this.node.outerHTML;
+  } catch (e) {
+    obj.node = null;
+  }
+
+  // Parent by key
+  obj.parent = this.parent ? this.parent._key : null;
+
+  // Inner nodes as list of keys
+  obj.innerNodes = this.innerNodes ? this.innerNodes.map(i => i._key) : [];
+
+  // Styles (private field)
+  obj.styles = this.#styles ? this.#styles : {};
+
+  // Appendices (Map)
+  if (this.appendices) obj.appendices = JSON.stringify(Array.from(this.appendices));
+
+  return JSON.stringify(obj);
+
+}
+
+static parse(serData, archive, nodeType) {
+
+  const data = typeof serData === 'string' ? JSON.parse(serData) : serData;
+
+  // Extract tag from serialized node if possible
+  let tag = 'div';
+  if (data.node && typeof data.node === 'string') {
+    const m = data.node.match(/^<\s*([a-zA-Z0-9:\-]+)/);
+    if (m) tag = m[1];
+  } else if (data._key) {
+    tag = data._key.split('_')[0];
+  }
+
+  // Use base id (part before underscore) so constructor creates reasonably
+  const baseId = data._key ? data._key.split('_')[0] : undefined;
+  const config = baseId ? { id: baseId } : {};
+
+  const el = new Element(tag, config, archive, nodeType);
+
+  // Ensure element is registered in archive under its key
+  archive.set(el._key, el);
+  // Adjust key in archive if constructor generated a different one
+  if (el._key !== data._key) {
+    archive.delete(el._key);
+    el._key = data._key;
+    archive.set(el._key, el);
+  }
+
+  // Reconstruct node from outerHTML using DOMParser
+  try {
+    let mime = 'text/html';
+    // detect svg via nodeType probe
+    try {
+      const probe = nodeType('g');
+      if (probe && probe.namespaceURI === 'http://www.w3.org/2000/svg') mime = 'image/svg+xml';
+    } catch (e) {}
+
+    const doc = parse.parseFromString(data.node || '<div></div>', mime);
+    const parsedNode = mime === 'image/svg+xml' ? doc.documentElement : doc.body.firstElementChild || doc.body;
+    if (parsedNode) {
+      el.node.replaceWith(parsedNode);
+      el.node = parsedNode;
+    }
+  } catch (e) {
+    // leave constructor-created node in place
+  }
+
+  // Restore styles
+  try {
+    el.#styles = data.styles || {};
+    // apply style values to DOM node
+    if (el.node && el.#styles) {
+      for (const [k, v] of Object.entries(el.#styles)) {
+        if (k in el.node.style) el.node.style[k] = Array.isArray(v) ? v.join(' ') : v;
+      }
+    }
+  } catch (e) {}
+
+  // Restore appendices
+  if (data.appendices) {
+    try {
+      el.appendices = new Map(JSON.parse(data.appendices));
+    } catch (e) {}
+  }
+
+  // Restore innerNodes references and attach DOM children where possible
+  if (Array.isArray(data.innerNodes) && data.innerNodes.length) {
+    el.innerNodes = [];
+    data.innerNodes.forEach(key => {
+      const child = archive.get(key);
+      if (child) {
+        el.innerNodes.push(child);
+        try { el.node.appendChild(child.node); } catch (e) {}
+        child.parent = el;
+      }
+    });
+  }
+
+  // Restore parent reference
+  if (data.parent) {
+    const p = archive.get(data.parent);
+    if (p) el.parent = p;
+  }
+
+  return el;
+
+}
+
 } // used by SVG.ren to create new node objects
 
+export { Element }
+
 // Utils
+
+const parse = new DOMParser()
 
 function configureElement(node, config) {
 
