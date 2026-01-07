@@ -152,11 +152,7 @@ parse(serData) {
       });
     }
   }
-
-  console.log('Parsed:', this)
-
   return this
-  
 }
 
 }
