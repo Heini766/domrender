@@ -521,7 +521,21 @@ export { Element }
 
 // Utils
 
-const parse = new DOMParser()
+// Use DOMParser when available (browser). In Node.js provide a safe stub
+// so server-side code won't throw when importing this module.
+const parse = (typeof DOMParser !== 'undefined') ? new DOMParser() : {
+  parseFromString: (str, mime) => {
+    // Minimal stub that matches the interface used in this file.
+    // On the server we cannot create real DOM nodes here, so return
+    // an object with `body` and `documentElement` properties.
+    return {
+      body: {
+        firstElementChild: null
+      },
+      documentElement: null
+    };
+  }
+}
 
 function configureElement(node, config) {
 
