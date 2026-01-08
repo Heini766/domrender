@@ -143,7 +143,7 @@ parse(serData) {
               const child = this[item].get(childKey);
               if (child) {
                 el.innerNodes.push(child);
-                try { el.node.appendChild(child.node); } catch (e) {}
+                // Don't append here - children are already in DOM from outerHTML restoration
                 child.parent = el;
               }
             });
@@ -152,8 +152,6 @@ parse(serData) {
       });
     }
   }
-
-  console.log('Parsed:', this)
 
   return this
   
@@ -499,7 +497,7 @@ static parse(serData, archive, nodeType) {
       const child = archive.get(key);
       if (child) {
         el.innerNodes.push(child);
-        try { el.node.appendChild(child.node); } catch (e) {}
+        // Don't append - children are already in DOM from outerHTML restoration
         child.parent = el;
       }
     });
