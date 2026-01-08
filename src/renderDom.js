@@ -152,9 +152,7 @@ parse(serData) {
       });
     }
   }
-
   return this
-  
 }
 
 }
