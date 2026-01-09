@@ -329,8 +329,17 @@ cut() {
   this.node.remove();
 }
 
-place() {
-  if (!this.parent.node) this.parent.body.appendChild(this.node)
+place(tag) {
+
+  console.log(tag)
+
+  if (typeof(tag) === 'function') tag = tag()
+  if (tag !== 'head' && tag !== 'body') tag = null;
+  
+  if (!this.parent.node) {
+    if (!tag) throw new Error('body/head tag not specified')
+    this.parent[tag].appendChild(this.node)
+  }
   else
   this.parent.node.appendChild(this.node)
 }
