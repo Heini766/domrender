@@ -353,6 +353,21 @@ append(name, data) {
   return this
 } // Used to attach data to this object
 
+newListener(event, callBack) {
+
+  if (!this._listeners) this._listeners = {}
+
+  if (Array.isArray(event)) {
+    event.forEach(item => {
+      addListeners(this, item[0], item[1])
+    })
+  } else {
+    addListeners(this, event, callBack)
+  }
+
+  
+}
+
 #purgeInnerNodes(node) {
   if (!node.innerNodes || node.innerNodes.length === 0) return;
   
@@ -444,6 +459,9 @@ serialize() {
   // Appendices (Map)
   if (this.appendices) obj.appendices = JSON.stringify(Array.from(this.appendices));
 
+  // Listeners metadata
+  if (this._listeners) obj._listeners = JSON.stringify(this._listeners);
+
   return JSON.stringify(obj);
 
 }
@@ -484,11 +502,29 @@ static parse(serData, archive, nodeType) {
       const probe = nodeType('g');
       if (probe && probe.namespaceURI === 'http://www.w3.org/2000/svg') mime = 'image/svg+xml';
     } catch (e) {}
+    // Prefer creating a DOM node using the provided nodeType (which is bound to the
+    // original document in server tests like JSDOM). This avoids relying on a
+    // global DOMParser stub which doesn't produce real DOM nodes in Node.js.
+    let parsedNode = null;
+    try {
+      if (nodeType && typeof nodeType === 'function') {
+        const wrapper = nodeType('div');
+        // Some node implementations (JSDOM) support innerHTML on elements
+        if (wrapper && typeof wrapper.innerHTML === 'string') {
+          wrapper.innerHTML = data.node || '<div></div>';
+          parsedNode = wrapper.firstElementChild || wrapper;
+        }
+      }
+    } catch (e) {}
 
-    const doc = parse.parseFromString(data.node || '<div></div>', mime);
-    const parsedNode = mime === 'image/svg+xml' ? doc.documentElement : doc.body.firstElementChild || doc.body;
+    // Fallback to DOMParser-based parse if nodeType approach didn't yield a node
+    if (!parsedNode) {
+      const doc = parse.parseFromString(data.node || '<div></div>', mime);
+      parsedNode = mime === 'image/svg+xml' ? doc.documentElement : doc.body.firstElementChild || doc.body;
+    }
+
     if (parsedNode) {
-      el.node.replaceWith(parsedNode);
+      try { el.node.replaceWith(parsedNode); } catch (e) {}
       el.node = parsedNode;
     }
   } catch (e) {
@@ -510,6 +546,38 @@ static parse(serData, archive, nodeType) {
   if (data.appendices) {
     try {
       el.appendices = new Map(JSON.parse(data.appendices));
+    } catch (e) {}
+  }
+
+  // Restore listeners metadata (callbacks stored as strings)
+  if (data._listeners) {
+    try {
+      el._listeners = JSON.parse(data._listeners);
+      // Attempt to reattach listeners only if matching functions are registered
+      try {
+        for (const [ev, arr] of Object.entries(el._listeners)) {
+          if (!Array.isArray(arr)) continue;
+          const attached = new Set();
+          arr.forEach(cbStr => {
+            try {
+              const entries = Element.listenerRegistry && Element.listenerRegistry.get(cbStr);
+              if (Array.isArray(entries) && entries.length) {
+                // Attach only those listeners that were originally registered for this element
+                // Ensure each registry entry is attached only once (avoid duplicate attachments
+                // when the serialized callback string appears multiple times).
+                entries.forEach(entry => {
+                  try {
+                    if (entry && entry.owner === el._key && entry.event === ev && typeof entry.fn === 'function' && el.node && el.node.addEventListener && !attached.has(entry)) {
+                      el.node.addEventListener(ev, entry.fn);
+                      attached.add(entry);
+                    }
+                  } catch (e) {}
+                });
+              }
+            } catch (e) {}
+          });
+        }
+      } catch (e) {}
     } catch (e) {}
   }
 
@@ -539,6 +607,11 @@ static parse(serData, archive, nodeType) {
 } // used by SVG.ren to create new node objects
 
 export { Element }
+
+// Registry of live callback functions keyed by their string representation.
+// Functions must be explicitly registered (via `Element.listenerRegistry.set(fn.toString(), fn)`)
+// to be reattached during deserialization. This avoids unsafe eval of serialized code.
+Element.listenerRegistry = new Map();
 
 // Utils
 
@@ -608,4 +681,23 @@ function getRelativePosition(event, object) {
     (event.clientY - y) / height * vbHeight + vbY
   ];
 
+}
+
+function addListeners(object, event, callBack) {
+  if (typeof(event) !== 'string' && typeof(callBack) !== 'function') throw new Error('Invalid argument/arguments given at', this)
+  if (!object._listeners[event]) object._listeners[event] = [];
+  object._listeners[event].push(callBack.toString())
+
+  // Register live function in registry for secure reattachment during parse
+  try {
+    if (Element && Element.listenerRegistry && typeof callBack === 'function') {
+      const key = callBack.toString();
+      const entry = { fn: callBack, owner: object._key, event };
+      const cur = Element.listenerRegistry.get(key) || [];
+      cur.push(entry);
+      Element.listenerRegistry.set(key, cur);
+    }
+  } catch (e) {}
+
+  object.node.addEventListener(event, callBack)
 }
