@@ -180,7 +180,7 @@ constructor(tag, config = {}, node, nodeType) {
   else this._key = tag + 'Element_0'
 
   let keyCount = 0;
-  archive.forEach(item => {
+  this.#archive.forEach(item => {
     const scoreIn = item._key.indexOf('_');
     const ogId = item._key.slice(0, scoreIn)
     if (ogId === config.id) {
