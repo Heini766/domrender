@@ -330,7 +330,7 @@ cut() {
 }
 
 place() {
-  if (!this.parent) document.body.appendChild(this.node)
+  if (!this.parent.node) this.parent.body.appendChild(this.node)
   else
   this.parent.node.appendChild(this.node)
 }
