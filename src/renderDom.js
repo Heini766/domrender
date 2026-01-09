@@ -25,7 +25,7 @@ constructor(dom, type) {
 make(tag, config) {
 
   if (!this.archive) this.archive = new Map();
-  const newElement = new Element(tag, config, this.archive, this._nodeTypes[this._type]);
+  const newElement = new Element(tag, config, this, this._nodeTypes[this._type]);
   this.archive.set(newElement._key, newElement);
 
   if (this._type=== 'svg') {
@@ -164,14 +164,15 @@ class Element {
 #styles = {};
 #archive;
 
-constructor(tag, config = {}, archive, nodeType) {
+constructor(tag, config = {}, node, nodeType) {
 
   if (typeof(tag) !== 'string') {
     console.warn(`Tag must be a string: ${tag}`)
     return
   }
 
-  this.#archive = archive;
+  this.#archive = node.archive;
+  this.parent = node._dom;
   
   this.node = nodeType(tag);
 
