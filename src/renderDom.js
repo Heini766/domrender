@@ -262,6 +262,31 @@ setState(config = {}, callBack) {
   
 }
 
+setAttr(config = {}, callBack) {
+  
+  if (!config || typeof config !== 'object') {
+    console.warn('Invalid config provided');
+    return this;
+  }
+  
+  for (const key in config) {
+    const value = config[key];
+    
+    if (value === null || value === undefined) {
+      this.node.removeAttribute(key);
+    } else {
+      this.node.setAttribute(key, value);
+    }
+  }
+
+  if (callBack && typeof(callBack) === 'function') {
+    callBack(this)
+  }
+
+  return this
+  
+}
+
 getState(styles) {
 
   if (typeof(styles) === 'string' && this.#styles[styles]) return this.#styles[styles]
