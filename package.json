@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test/serializeTest.js",
     "test2": "node test/nodeSerializeTest.js",
-    "listen": "node test/elementAddListenerTest.js"
+    "listen": "node test/elementAddListenerTest.js",
+    "testElementMethods": "node test/elementMethodsTest.js"
   },
   "keywords": [
     "dom",
