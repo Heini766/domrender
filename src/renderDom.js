@@ -331,8 +331,6 @@ cut() {
 
 place(tag) {
 
-  console.log(tag)
-
   if (typeof(tag) === 'function') tag = tag()
   if (tag !== 'head' && tag !== 'body') tag = null;
   
