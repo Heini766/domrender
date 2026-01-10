@@ -161,8 +161,11 @@ parse(serData) {
 
 class Element {
 
+static listenerRegistry = new Map();
+
 #styles = {};
 #archive;
+_listeners = {}
 
 constructor(tag, config = {}, node, nodeType) {
 
@@ -557,35 +560,23 @@ static parse(serData, node, nodeType) {
     } catch (e) {}
   }
 
-  // Restore listeners metadata (callbacks stored as strings)
+  // Restore listeners metadata from registry
   if (data._listeners) {
     try {
       el._listeners = JSON.parse(data._listeners);
-      // Attempt to reattach listeners only if matching functions are registered
-      try {
-        for (const [ev, arr] of Object.entries(el._listeners)) {
-          if (!Array.isArray(arr)) continue;
-          const attached = new Set();
-          arr.forEach(cbStr => {
-            try {
-              const entries = Element.listenerRegistry && Element.listenerRegistry.get(cbStr);
-              if (Array.isArray(entries) && entries.length) {
-                // Attach only those listeners that were originally registered for this element
-                // Ensure each registry entry is attached only once (avoid duplicate attachments
-                // when the serialized callback string appears multiple times).
-                entries.forEach(entry => {
-                  try {
-                    if (entry && entry.owner === el._key && entry.event === ev && typeof entry.fn === 'function' && el.node && el.node.addEventListener && !attached.has(entry)) {
-                      el.node.addEventListener(ev, entry.fn);
-                      attached.add(entry);
-                    }
-                  } catch (e) {}
-                });
-              }
-            } catch (e) {}
-          });
-        }
-      } catch (e) {}
+      for (let key in el._listeners) {
+        const arr = el._listeners[key];
+        if (!Array.isArray(arr)) continue;
+        
+        arr.forEach(callbackId => {
+          try {
+            const fn = Element.listenerRegistry.get(callbackId);
+            if (typeof fn === 'function') {
+              el.node.addEventListener(key, fn);
+            }
+          } catch (e) {}
+        });
+      }
     } catch (e) {}
   }
 
@@ -615,11 +606,6 @@ static parse(serData, node, nodeType) {
 } // used by SVG.ren to create new node objects
 
 export { Element }
-
-// Registry of live callback functions keyed by their string representation.
-// Functions must be explicitly registered (via `Element.listenerRegistry.set(fn.toString(), fn)`)
-// to be reattached during deserialization. This avoids unsafe eval of serialized code.
-Element.listenerRegistry = new Map();
 
 // Utils
 
@@ -694,18 +680,36 @@ function getRelativePosition(event, object) {
 function addListeners(object, event, callBack) {
   if (typeof(event) !== 'string' && typeof(callBack) !== 'function') throw new Error('Invalid argument/arguments given at', this)
   if (!object._listeners[event]) object._listeners[event] = [];
-  object._listeners[event].push(callBack.toString())
-
-  // Register live function in registry for secure reattachment during parse
-  try {
-    if (Element && Element.listenerRegistry && typeof callBack === 'function') {
-      const key = callBack.toString();
-      const entry = { fn: callBack, owner: object._key, event };
-      const cur = Element.listenerRegistry.get(key) || [];
-      cur.push(entry);
-      Element.listenerRegistry.set(key, cur);
-    }
-  } catch (e) {}
+  
+  // Generate unique ID for this callback
+  const callbackId = `listener_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Store callback in registry
+  Element.listenerRegistry.set(callbackId, callBack);
+  
+  // Store ID instead of function string
+  object._listeners[event].push(callbackId);
 
   object.node.addEventListener(event, callBack)
+}
+
+function stringToFunc(funcString) {
+  funcString = funcString.trim();
+  
+  // Wrap in parentheses if it looks like a function expression
+  if (funcString.startsWith('function') || funcString.includes('=>')) {
+    // Already a function expression
+    return eval(`(${funcString})`);
+  } else if (funcString.startsWith('(') && funcString.endsWith(')')) {
+    // Already wrapped in parentheses
+    return eval(funcString);
+  } else {
+    // Try to parse as an expression
+    try {
+      return new Function(`return ${funcString}`)();
+    } catch (e) {
+      // If that fails, try as a function body
+      return new Function(funcString);
+    }
+  }
 }

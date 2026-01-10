@@ -4,6 +4,7 @@
   "description": "A DOM rendering library",
   "main": "index.js",
   "scripts": {
+    "listen": "node test/customListnerTest.js",
     "test": "node test/nodeSerializeTest.js",
     "testElementMethods": "node test/elementMethodsTest.js"
   },
