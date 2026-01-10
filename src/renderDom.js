@@ -692,24 +692,3 @@ function addListeners(object, event, callBack) {
 
   object.node.addEventListener(event, callBack)
 }
-
-function stringToFunc(funcString) {
-  funcString = funcString.trim();
-  
-  // Wrap in parentheses if it looks like a function expression
-  if (funcString.startsWith('function') || funcString.includes('=>')) {
-    // Already a function expression
-    return eval(`(${funcString})`);
-  } else if (funcString.startsWith('(') && funcString.endsWith(')')) {
-    // Already wrapped in parentheses
-    return eval(funcString);
-  } else {
-    // Try to parse as an expression
-    try {
-      return new Function(`return ${funcString}`)();
-    } catch (e) {
-      // If that fails, try as a function body
-      return new Function(funcString);
-    }
-  }
-}
