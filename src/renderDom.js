@@ -92,6 +92,7 @@ serialize() {
 
   for (let item in this) {
     if (item === '_nodeTypes') break
+    if (item === '_dom') continue  // Skip DOM object - it can't be serialized
     if (item === 'archive') {
 
       const arr = Array.from(this[item].entries()).map(([k,v]) => [k, typeof v.serialize === 'function' ? v.serialize() : v]);
@@ -116,14 +117,13 @@ parse(serData) {
     
     this[item] = data[item]
 
-    if (item === '_dom') this[item] = parse.parseFromString(data[item], 'text/html')
     if (item === 'archive') {
       const parsedArray = JSON.parse(data[item]);
       this[item] = new Map();
       // Reconstruct elements into archive using Element.parse
       parsedArray.forEach(([key, ser]) => {
         try {
-          Element.parse(ser, this[item], this._nodeTypes[this._type]);
+          Element.parse(ser, this, this._nodeTypes[this._type]);
         } catch (e) {
           // fallback: store raw
           this[item].set(key, ser);
@@ -474,7 +474,7 @@ serialize() {
 
 }
 
-static parse(serData, archive, nodeType) {
+static parse(serData, node, nodeType) {
 
   const data = typeof serData === 'string' ? JSON.parse(serData) : serData;
 
@@ -491,15 +491,15 @@ static parse(serData, archive, nodeType) {
   const baseId = data._key ? data._key.split('_')[0] : undefined;
   const config = baseId ? { id: baseId } : {};
 
-  const el = new Element(tag, config, archive, nodeType);
+  const el = new Element(tag, config, node, nodeType);
 
   // Ensure element is registered in archive under its key
-  archive.set(el._key, el);
+  node.archive.set(el._key, el);
   // Adjust key in archive if constructor generated a different one
   if (el._key !== data._key) {
-    archive.delete(el._key);
+    node.archive.delete(el._key);
     el._key = data._key;
-    archive.set(el._key, el);
+    node.archive.set(el._key, el);
   }
 
   // Reconstruct node from outerHTML using DOMParser
@@ -593,7 +593,7 @@ static parse(serData, archive, nodeType) {
   if (Array.isArray(data.innerNodes) && data.innerNodes.length) {
     el.innerNodes = [];
     data.innerNodes.forEach(key => {
-      const child = archive.get(key);
+      const child = node.archive.get(key);
       if (child) {
         el.innerNodes.push(child);
         // Don't append - children are already in DOM from outerHTML restoration
@@ -604,7 +604,7 @@ static parse(serData, archive, nodeType) {
 
   // Restore parent reference
   if (data.parent) {
-    const p = archive.get(data.parent);
+    const p = node.archive.get(data.parent);
     if (p) el.parent = p;
   }
 
