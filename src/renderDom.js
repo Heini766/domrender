@@ -157,8 +157,6 @@ parse(serData) {
 
 }
 
-// Helper functions
-
 class Element {
 
 #styles = {};
@@ -566,8 +564,6 @@ static parse(serData, node, nodeType) {
 
 export { Element }
 
-// Utils
-
 // Use DOMParser when available (browser). In Node.js provide a safe stub
 // so server-side code won't throw when importing this module.
 const parse = (typeof DOMParser !== 'undefined') ? new DOMParser() : {
@@ -584,6 +580,7 @@ const parse = (typeof DOMParser !== 'undefined') ? new DOMParser() : {
   }
 }
 
+// Helper functions
 function configureElement(node, config) {
 
   if (!config || typeof(config) !== 'object' || Array.isArray(config)) return;
