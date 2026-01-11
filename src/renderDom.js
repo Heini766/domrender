@@ -161,11 +161,8 @@ parse(serData) {
 
 class Element {
 
-static listenerRegistry = new Map();
-
 #styles = {};
 #archive;
-_listeners = {}
 
 constructor(tag, config = {}, node, nodeType) {
 
@@ -364,21 +361,6 @@ append(name, data) {
   return this
 } // Used to attach data to this object
 
-newListener(event, callBack) {
-
-  if (!this._listeners) this._listeners = {}
-
-  if (Array.isArray(event)) {
-    event.forEach(item => {
-      addListeners(this, item[0], item[1])
-    })
-  } else {
-    addListeners(this, event, callBack)
-  }
-
-  
-}
-
 #purgeInnerNodes(node) {
   if (!node.innerNodes || node.innerNodes.length === 0) return;
   
@@ -470,9 +452,6 @@ serialize() {
   // Appendices (Map)
   if (this.appendices) obj.appendices = JSON.stringify(Array.from(this.appendices));
 
-  // Listeners metadata
-  if (this._listeners) obj._listeners = JSON.stringify(this._listeners);
-
   return JSON.stringify(obj);
 
 }
@@ -557,26 +536,6 @@ static parse(serData, node, nodeType) {
   if (data.appendices) {
     try {
       el.appendices = new Map(JSON.parse(data.appendices));
-    } catch (e) {}
-  }
-
-  // Restore listeners metadata from registry
-  if (data._listeners) {
-    try {
-      el._listeners = JSON.parse(data._listeners);
-      for (let key in el._listeners) {
-        const arr = el._listeners[key];
-        if (!Array.isArray(arr)) continue;
-        
-        arr.forEach(callbackId => {
-          try {
-            const fn = Element.listenerRegistry.get(callbackId);
-            if (typeof fn === 'function') {
-              el.node.addEventListener(key, fn);
-            }
-          } catch (e) {}
-        });
-      }
     } catch (e) {}
   }
 
@@ -675,20 +634,4 @@ function getRelativePosition(event, object) {
     (event.clientY - y) / height * vbHeight + vbY
   ];
 
-}
-
-function addListeners(object, event, callBack) {
-  if (typeof(event) !== 'string' && typeof(callBack) !== 'function') throw new Error('Invalid argument/arguments given at', this)
-  if (!object._listeners[event]) object._listeners[event] = [];
-  
-  // Generate unique ID for this callback
-  const callbackId = `listener_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  // Store callback in registry
-  Element.listenerRegistry.set(callbackId, callBack);
-  
-  // Store ID instead of function string
-  object._listeners[event].push(callbackId);
-
-  object.node.addEventListener(event, callBack)
 }
